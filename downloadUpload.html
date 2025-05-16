@@ -21,7 +21,6 @@
             margin: 20px;
         }
 
-        /* Download button */
         .download-btn {
             display: inline-block;
             padding: 15px 30px;
@@ -40,7 +39,6 @@
             box-shadow: 0 2px #388E3C, 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
-        /* Upload button */
         .upload-btn {
             display: inline-block;
             padding: 15px 30px;
@@ -63,7 +61,6 @@
             display: none;
         }
 
-        /* Submit button */
         .submit-btn {
             display: inline-block;
             padding: 15px 30px;
@@ -82,43 +79,28 @@
             box-shadow: 0 2px #E64A19, 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
-        /* 3D Alert box */
+        .alert-box, .success-box {
+            display: none;
+            padding: 20px;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            transform: translateZ(0);
+            perspective: 1000px;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+
         .alert-box {
-            display: none;
-            padding: 20px;
             background-color: #FF5722;
-            color: white;
-            font-size: 18px;
-            text-align: center;
-            border-radius: 10px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-            transform: translateZ(0);
-            perspective: 1000px;
-            transition: transform 0.5s ease, opacity 0.5s ease;
         }
 
-        .alert-box.show {
-            display: block;
-            opacity: 1;
-            transform: rotateX(20deg);
-        }
-
-        /* Success box */
         .success-box {
-            display: none;
-            padding: 20px;
             background-color: #4CAF50;
-            color: white;
-            font-size: 18px;
-            text-align: center;
-            border-radius: 10px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-            transform: translateZ(0);
-            perspective: 1000px;
-            transition: transform 0.5s ease, opacity 0.5s ease;
         }
 
-        .success-box.show {
+        .alert-box.show, .success-box.show {
             display: block;
             opacity: 1;
             transform: rotateX(20deg);
@@ -135,7 +117,14 @@
         <div class="button-container">
             <label class="upload-btn">
                 Upload
-                <input type="file" id="uploadInput" class="upload-input" accept=".pdf" required>
+                <input type="file" id="uploadInput" class="upload-input" accept=".pdf">
+            </label>
+        </div>
+
+        <div class="button-container">
+            <label class="upload-btn">
+                Upload Multiple PDFs
+                <input type="file" id="multiUploadInput" class="upload-input" accept=".pdf" multiple>
             </label>
         </div>
 
@@ -145,34 +134,42 @@
     </form>
 
     <div class="alert-box" id="alertBox">
-        Please upload a PDF file!
+        Please upload at least one PDF file. Only PDF files are allowed!
     </div>
 
     <div class="success-box" id="successBox">
-        File uploaded successfully!
+        Files uploaded successfully!
     </div>
 
     <script>
         const form = document.getElementById('uploadForm');
         const uploadInput = document.getElementById('uploadInput');
+        const multiUploadInput = document.getElementById('multiUploadInput');
         const alertBox = document.getElementById('alertBox');
         const successBox = document.getElementById('successBox');
 
         form.addEventListener('submit', function(event) {
-            const file = uploadInput.files[0];
+            event.preventDefault(); // prevent form submission initially
 
-            // PDF file check
-            if (!file || file.type !== "application/pdf") {
-                event.preventDefault(); // Prevent non-PDF files from being uploaded
-                alertBox.classList.add('show'); // Show warning message
-                setTimeout(() => alertBox.classList.remove('show'), 3000); // Hide warning after 3 seconds
+            const singleFile = uploadInput.files[0];
+            const multipleFiles = multiUploadInput.files;
+
+            const hasSingleFile = !!singleFile;
+            const hasMultipleFiles = multipleFiles.length > 0;
+
+            const isSinglePDF = hasSingleFile && singleFile.type === "application/pdf";
+            const areMultiplePDFs = hasMultipleFiles &&
+                Array.from(multipleFiles).every(file => file.type === "application/pdf");
+
+            if ((!hasSingleFile && !hasMultipleFiles) || (hasSingleFile && !isSinglePDF) || (hasMultipleFiles && !areMultiplePDFs)) {
+                alertBox.classList.add('show');
+                setTimeout(() => alertBox.classList.remove('show'), 3000);
             } else {
-                event.preventDefault(); // Delay form submission
-                successBox.classList.add('show'); // Show success message
+                successBox.classList.add('show');
                 setTimeout(() => {
-                    successBox.classList.remove('show'); // Hide success message after 5 seconds
-                    form.submit(); // Submit the form
-                }, 5000); // Show success for 5 seconds
+                    successBox.classList.remove('show');
+                    form.submit(); // actual submission after delay
+                }, 5000);
             }
         });
     </script>
