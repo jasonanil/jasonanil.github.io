@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Buttons</title>
+    <title>Drag and Drop File Upload</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,75 +21,60 @@
             margin: 20px;
         }
 
-        .download-btn {
+        .download-btn,
+        .upload-btn,
+        .submit-btn {
             display: inline-block;
             padding: 15px 30px;
             font-size: 18px;
             color: #fff;
-            background-color: #4CAF50;
             border: none;
             border-radius: 10px;
-            box-shadow: 0 4px #388E3C, 0 6px 10px rgba(0, 0, 0, 0.2);
-            text-decoration: none;
+            box-shadow: 0 4px rgba(0, 0, 0, 0.3), 0 6px 10px rgba(0, 0, 0, 0.2);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .download-btn {
+            background-color: #4CAF50;
         }
 
         .download-btn:active {
             transform: translateY(4px);
-            box-shadow: 0 2px #388E3C, 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .upload-btn {
-            display: inline-block;
-            padding: 15px 30px;
-            font-size: 18px;
-            color: #fff;
             background-color: #2196F3;
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px #1976D2, 0 6px 10px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .upload-btn:active {
             transform: translateY(4px);
-            box-shadow: 0 2px #1976D2, 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .submit-btn {
+            background-color: #FF5722;
+        }
+
+        .submit-btn:active {
+            transform: translateY(4px);
         }
 
         .upload-input {
             display: none;
         }
 
-        .submit-btn {
-            display: inline-block;
-            padding: 15px 30px;
-            font-size: 18px;
-            color: #fff;
-            background-color: #FF5722;
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px #E64A19, 0 6px 10px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .submit-btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px #E64A19, 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .alert-box, .success-box {
+        .alert-box,
+        .success-box {
             display: none;
             padding: 20px;
             color: white;
             font-size: 18px;
             text-align: center;
             border-radius: 10px;
+            margin-top: 20px;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-            transform: translateZ(0);
-            perspective: 1000px;
-            transition: transform 0.5s ease, opacity 0.5s ease;
+            transition: opacity 0.5s ease;
         }
 
         .alert-box {
@@ -100,10 +85,26 @@
             background-color: #4CAF50;
         }
 
-        .alert-box.show, .success-box.show {
+        .alert-box.show,
+        .success-box.show {
             display: block;
             opacity: 1;
-            transform: rotateX(20deg);
+        }
+
+        .drop-zone {
+            border: 3px dashed #bbb;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            color: #aaa;
+            margin: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .drop-zone.dragover {
+            background-color: #e3f2fd;
+            border-color: #2196F3;
+            color: #2196F3;
         }
     </style>
 </head>
@@ -128,6 +129,10 @@
             </label>
         </div>
 
+        <div class="drop-zone" id="dropZone">
+            Drag and drop PDF files here
+        </div>
+
         <div class="button-container">
             <button type="submit" class="submit-btn">Submit</button>
         </div>
@@ -147,9 +152,38 @@
         const multiUploadInput = document.getElementById('multiUploadInput');
         const alertBox = document.getElementById('alertBox');
         const successBox = document.getElementById('successBox');
+        const dropZone = document.getElementById('dropZone');
+
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'application/pdf');
+
+            if (files.length > 1) {
+                multiUploadInput.files = createFileList(files);
+            } else if (files.length === 1) {
+                uploadInput.files = createFileList(files);
+            }
+        });
+
+        function createFileList(files) {
+            const dataTransfer = new DataTransfer();
+            files.forEach(file => dataTransfer.items.add(file));
+            return dataTransfer.files;
+        }
 
         form.addEventListener('submit', function(event) {
-            event.preventDefault(); // prevent form submission initially
+            event.preventDefault();
 
             const singleFile = uploadInput.files[0];
             const multipleFiles = multiUploadInput.files;
@@ -168,8 +202,8 @@
                 successBox.classList.add('show');
                 setTimeout(() => {
                     successBox.classList.remove('show');
-                    form.submit(); // actual submission after delay
-                }, 5000);
+                    form.submit();
+                }, 3000);
             }
         });
     </script>
