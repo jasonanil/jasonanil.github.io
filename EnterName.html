@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>İsim Kaydet (GitHub Gist)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 2rem; max-width: 720px; margin: auto; }
+    label, input, textarea, button { display: block; width: 100%; margin-top: .5rem; }
+    input, textarea { padding: .5rem; font-size: 1rem; }
+    small { color: #666; }
+    .row { display: flex; gap: .5rem; }
+    .row > * { flex: 1; }
+    pre { background:#f6f8fa;padding:1rem;border-radius:6px;overflow:auto }
+  </style>
+</head>
+<body>
+  <h1>İsim kaydet (GitHub Gist)</h1>
+
+  <p>Buraya bir isim gir. Kayıt <strong>Gist</strong> olarak oluşturulacak ve dönen Gist URL'si gösterilecek.</p>
+
+  <label>İsim
+    <input id="nameInput" placeholder="Ör. Ahmet Yılmaz" />
+  </label>
+
+  <label>
+    Gist açıklaması (opsiyonel)
+    <input id="descInput" placeholder="Örn: Kullanıcı kayıt gist'i" />
+  </label>
+
+  <label>
+    Gist gizliliği
+    <select id="publicSelect">
+      <option value="true">Public (herkes görür)</option>
+      <option value="false">Secret (listelenmez ama link ile erişilir)</option>
+    </select>
+  </label>
+
+  <hr/>
+
+  <label>
+    <input type="checkbox" id="useToken" /> Kendi GitHub tokenimi kullanmak istiyorum
+  </label>
+
+  <label>
+    Eğer token kullanıyorsan buraya yapıştır (NOT: token'ı herkese açık sayfada saklamak güvenli değil)
+    <input id="tokenInput" placeholder="ghp_..." />
+    <small>Token istemiyorsan boş bırak ve anonim olarak gist oluştur</small>
+  </label>
+
+  <div style="margin-top:1rem" class="row">
+    <button id="saveBtn">Kaydet Gist Oluştur</button>
+    <button id="clearBtn" type="button">Temizle</button>
+  </div>
+
+  <h3>Durum</h3>
+  <div id="status">Henüz işlem yapılmadı.</div>
+
+  <h3>Sunucu cevabı</h3>
+  <pre id="responseArea">—</pre>
+
+  <script>
+    const saveBtn = document.getElementById('saveBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const status = document.getElementById('status');
+    const responseArea = document.getElementById('responseArea');
+
+    function showStatus(txt) {
+      status.textContent = txt;
+    }
+
+    function showResponse(obj) {
+      responseArea.textContent = JSON.stringify(obj, null, 2);
+    }
+
+    function createGistPayload(name, desc, isPublic) {
+      // Gist içine kaydedeceğimiz dosya: name.txt
+      const filename = `name-${Date.now()}.txt`;
+      const content = `İsim: ${name}\nOluşturulma: ${new Date().toISOString()}\n`;
+      return {
+        description: desc || `Name saved via web UI`,
+        public: isPublic,
+        files: {
+          [filename]: { content }
+        }
+      };
+    }
+
+    async function postGist(payload, token) {
+      const url = 'https://api.github.com/gists';
+      const headers = { 'Content-Type': 'application/json;charset=utf-8' };
+      if (token) headers['Authorization'] = 'token ' + token;
+
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      const body = await resp.json();
+      return { ok: resp.ok, status: resp.status, body };
+    }
+
+    saveBtn.addEventListener('click', async () => {
+      const name = document.getElementById('nameInput').value.trim();
+      const desc = document.getElementById('descInput').value.trim();
+      const isPublic = document.getElementById('publicSelect').value === 'true';
+      const useToken = document.getElementById('useToken').checked;
+      const token = document.getElementById('tokenInput').value.trim();
+
+      if (!name) {
+        showStatus('Lütfen bir isim gir.');
+        return;
+      }
+      if (useToken && !token) {
+        showStatus('Token kullanmayı seçtin ama token boş.');
+        return;
+      }
+
+      showStatus('Gist oluşturuluyor...');
+      showResponse({ sending: { name, desc, isPublic, useToken } });
+
+      try {
+        const payload = createGistPayload(name, desc, isPublic);
+        const result = await postGist(payload, useToken ? token : null);
+
+        if (result.ok) {
+          showStatus('Gist başarılı! Aşağıda detaylar var.');
+          showResponse(result.body);
+
+          // Eğer gist url varsa göster, ayrıca yeni sekmede açma butonu ekle
+          const gistUrl = result.body.html_url || result.body.url;
+          if (gistUrl) {
+            const link = document.createElement('a');
+            link.href = gistUrl;
+            link.textContent = 'Gist sayfasını aç';
+            link.target = '_blank';
+            // temizle önceki link
+            const old = document.getElementById('openLink');
+            if (old) old.remove();
+            link.id = 'openLink';
+            status.appendChild(document.createElement('br'));
+            status.appendChild(link);
+          }
+        } else {
+          showStatus('Hata: ' + result.status);
+          showResponse(result.body);
+        }
+      } catch (err) {
+        showStatus('İstek atılırken hata: ' + err.message);
+        showResponse({ error: err.message });
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      document.getElementById('nameInput').value = '';
+      document.getElementById('descInput').value = '';
+      document.getElementById('tokenInput').value = '';
+      document.getElementById('useToken').checked = false;
+      showStatus('Temizlendi.');
+      showResponse('—');
+    });
+  </script>
+</body>
+</html>
